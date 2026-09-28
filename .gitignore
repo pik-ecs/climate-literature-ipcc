@@ -9,6 +9,7 @@ dist/
 venv/
 
 data/raw/scopus/
+data/ipcc/raw/
 data/policymap/
 data/logs/
 data/predictions/

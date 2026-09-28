@@ -1,0 +1,25 @@
+{
+  "dataset": "https://dataverse.no/dataset.xhtml?persistentId=doi:10.18710/8K2STL",
+  "doi": "doi:10.18710/8K2STL",
+  "version": "1.1",
+  "license": "CC0 1.0",
+  "citation": "Karpova, A., 2026, 'Database of references from Intergovernmental Panel on Climate Change (IPCC) reports in the years 1995-2022', DataverseNO, V1.1, CC0-1.0, doi:10.18710/8K2STL",
+  "retrieved": "2026-09-28",
+  "files": {
+    "IPCC_database.csv": {
+      "dataverse_file_id": 295940,
+      "sha256": "a677be90b6529fbd30a70e5fce6b9525cd14b8f6437603354239d5208b43244e",
+      "bytes": 75036588
+    },
+    "ReadMe.txt": {
+      "dataverse_file_id": 295948,
+      "sha256": "683465e471b0cba23308e87bbfca2ef5769aba990dddfe5c5c8025110ee3793f",
+      "bytes": 4910
+    },
+    "Summary_over_included_reports.pdf": {
+      "dataverse_file_id": 295943,
+      "sha256": "15639646af658f35e23610eb70b45e9790a3836ec810dce6206632803fc5aa1b",
+      "bytes": 282374
+    }
+  }
+}

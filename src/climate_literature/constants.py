@@ -1,6 +1,9 @@
 from pathlib import Path
 
 RAW_DATA = Path("data/raw/scopus")
+# Third-party inputs under data/ipcc/: raw downloads in raw/ (gitignored),
+# provenance manifest and derived tables in git.
+IPCC_DATA = Path("data/ipcc")
 MAP_DATA = Path("data/policymap")
 PREDICTIONS_DATA = Path("data/predictions")
 TOPICS_DATA = Path("data/topics")
