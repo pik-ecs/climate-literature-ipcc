@@ -23,6 +23,7 @@ dependencies = [
   "matplotlib>=3.11.1",
   "pandas>=3.0.5",
   "pyarrow>=25.0.1",
+  "rapidfuzz>=3.14",
   "snakemake>=9.26.1",
   "typer>=0.27",
 ]
@@ -46,6 +47,10 @@ scripts.figures = "climate_literature.reporting.plots:app"
 
 [tool.hatch]
 version.source = "vcs"
+# hatch-vcs' default prefix class ([\w-]+-) rejects dots, so the model-release
+# tag topics-K200_a0.0-v1 fails to parse and every project build dies in
+# version resolution. Allow dots in the prefix segment.
+version.tag-pattern = '^(?:[\w.-]+-)?(?P<version>[vV]?\d+(?:\.\d+){0,2}[^\+]*)(?:\+.*)?$'
 build.targets.wheel.packages = [
   "src/climate_literature",
 ]

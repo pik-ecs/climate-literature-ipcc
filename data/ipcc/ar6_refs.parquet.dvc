@@ -1,0 +1,5 @@
+outs:
+- md5: 0570cbbedeef3c93a77986b6aca17f51
+  size: 7630247
+  hash: md5
+  path: ar6_refs.parquet

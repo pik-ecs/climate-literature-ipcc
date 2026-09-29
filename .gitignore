@@ -10,6 +10,9 @@ venv/
 
 data/raw/scopus/
 data/ipcc/raw/
+data/ipcc/ar6_refs.parquet
+data/ipcc/ipcc_ar6_matches.parquet
+data/ipcc/ipcc_doc_wg.parquet
 data/policymap/
 data/logs/
 data/predictions/
