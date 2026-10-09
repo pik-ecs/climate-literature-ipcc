@@ -21,9 +21,14 @@ import pyarrow.parquet as pq
 import typer
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import FuncFormatter
-from pandas import DataFrame, Series, concat
+from pandas import DataFrame, Series, concat, read_csv
 
-from climate_literature.constants import COORDS_DATA, FIGURES_DIR, PREDICTIONS_DATA
+from climate_literature.constants import (
+    COORDS_DATA,
+    FIGURES_DIR,
+    PREDICTIONS_DATA,
+    TABLES_DIR,
+)
 from climate_literature.settings import settings
 
 app = typer.Typer(help="Build the reporting figures.")
@@ -51,6 +56,10 @@ GRID = "#e4e4e1"
 
 # Categorical slot 1 — reuse in order across figures, never cycle.
 SERIES_1 = "#2a78d6"
+
+# Slot 2: darker step of slot 1 for nested subsets (shares lightness ordering
+# with SERIES_1, so nested stack segments read as subset-of by value alone).
+SERIES_2 = "#1a4f8f"
 
 # Recessive neutral for "everything else" context segments — deliberately
 # achromatic (not a series), validated against SERIES_1 for CVD separation.
@@ -127,6 +136,57 @@ def load_prediction_columns(wanted: list[str]) -> DataFrame:
     if "publication_year" not in wanted:
         df = df.drop(columns="publication_year")
     return df
+
+
+@figure
+def wgiii_share_by_year() -> None:
+    """Total documents per year, with the WG III and policy-relevant fractions.
+
+    Stacked bars: the full bar is that year's corpus (total = the papers-by-
+    year figure's count); from the base up, documents that are WG III-relevant
+    (WG III content score ≥ 1/3, the loading-weighted average of per-topic
+    WG III citation shares — climate_literature.topics.wg), of which the
+    policy-relevant subset per the 2024 classifier. Reads the yearly table
+    written by `topics.wg counts` — rerun that command first if topic labels
+    changed.
+    """
+    configure_style()
+    df = read_csv(TABLES_DIR / "wgiii_docs_by_year_a200.csv", index_col="year")
+    df = df[df.index <= 2024]  # cover dates beyond 2024 are incomplete
+    total, wg3, rel = df["docs"], df["wg3_relevant"], df["wg3_policy_relevant"]
+
+    fig, ax = plt.subplots(figsize=(7, 3.5))
+    x = df.index.to_numpy()
+    ax.bar(x, rel, width=0.8, color=SERIES_2, linewidth=0, label="policy-relevant")
+    ax.bar(
+        x,
+        wg3 - rel,
+        bottom=rel,
+        width=0.8,
+        color=SERIES_1,
+        linewidth=0,
+        label="WG III-relevant topics",
+    )
+    ax.bar(
+        x,
+        total - wg3,
+        bottom=wg3,
+        width=0.8,
+        color=NEUTRAL_REST,
+        linewidth=0,
+        label="not WG III",
+    )
+    ax.set_title("WG III-relevant share of the literature")
+    ax.set_xlabel("Publication year")
+    ax.set_ylabel("Documents")
+    ax.set_xticks(range(1985, 2025, 5))
+    ax.grid(axis="y", color=GRID, linewidth=0.8)
+    ax.set_axisbelow(True)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    ax.legend(frameon=False, fontsize=8, loc="upper left")
+    fig.tight_layout()
+    save_fig(fig, "wgiii_share_by_year")
 
 
 # The sector model's columns look like "8 - 04. Energy" in the predictions.

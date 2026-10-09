@@ -19,10 +19,11 @@ Run from the repo root:
 import math
 from pathlib import Path
 
+import pandas as pd
 import typer
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from climate_literature.constants import PREDICTIONS_DATA
+from climate_literature.constants import PREDICTIONS_DATA, TABLES_DIR
 from climate_literature.reporting.plots import (
     MIN_PUBLICATION_YEAR,
     RELEVANCE_THRESHOLD,
@@ -100,7 +101,25 @@ def compute_stats() -> dict[str, float]:
         name = col.removeprefix(SECTOR_PREFIX)
         name = name[name.index(". ") + 2 :]
         stats[f"sector_share_{name.lower()}"] = n / n_sector
+
+    # WG III relevance: topic content score, from the yearly table written by
+    # `python -m climate_literature.topics.wg counts` (re-run that command
+    # after changing the model or the cut in topics.wg).
+    yrs = pd.read_csv(TABLES_DIR / "wgiii_docs_by_year_a200.csv", index_col="year")
+    yrs = yrs.loc[:LAST_COMPLETE_YEAR]
+    n_wg3, n_dated = int(yrs["wg3_relevant"].sum()), int(yrs["docs"].sum())
+    stats |= {
+        "n_wg3": n_wg3,
+        "share_wg3": n_wg3 / n_dated,
+        "share_wg3_baseline": _year_share(yrs, BASELINE_YEAR),
+        "share_wg3_last": _year_share(yrs, LAST_COMPLETE_YEAR),
+    }
     return stats
+
+
+def _year_share(yrs: pd.DataFrame, year: int) -> float:
+    r = yrs.loc[year]
+    return r["wg3_relevant"] / r["docs"]
 
 
 def _sector_str(stats: dict[str, float]) -> str:

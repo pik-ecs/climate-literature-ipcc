@@ -13,11 +13,17 @@ topic's total IPCC citations) supports a "typically cited by WG III" cut
 beyond bare argmax.
 
 `assign` writes report/tables/topic_wg_a200.csv; `counts` writes
-report/tables/wgiii_doc_counts_a200.csv with the headline document counts:
+report/tables/wgiii_doc_counts_a200.csv with the headline document counts.
+The one measure of WG III-ness is a content score —
 
-  hard   dominant topic (argmax loading) is a WG III-primary topic
-  soft   ≥ 0.10 loading on any WG III-primary topic (K200's audit threshold)
-  strict hard/soft over the stricter WG III topics (wg3_share > 0.5)
+    score(doc) = Σ_t renormalised loading(doc, t) · wg3_share(t)
+
+the document's WG III content fraction — and `wg3_relevant` is score ≥ 1/3:
+more WG III content than an equal three-way split, an absolute anchor that
+does not depend on this corpus's own citation mix. Against AR6-cited ground
+truth (scripts/wg3_tune.py) this cut recovers 62% of WG III-cited documents
+while flagging only 1.2% of WG I-cited literature. `wg3_policy_relevant` is
+wg3_relevant ∩ the 2024 classifier.
 
 counts also splits by publication year and cross-tabs against the
 policy-relevance classifier and its sector argmax (reporting/numbers.py
@@ -45,7 +51,7 @@ DT_DIR = TOPICS_DATA / "doc_topics" / TAG
 TOPIC_WG = TABLES_DIR / "topic_wg_a200.csv"
 COUNTS = TABLES_DIR / "wgiii_doc_counts_a200.csv"
 DOC_WG = IPCC_DATA / "ipcc_doc_wg.parquet"  # DVC-tracked, see ipcc_refs
-ORPHAN = 0.1  # same soft-membership threshold as the K200 audit
+WG3_CUT = 1 / 3  # more WG III content than an equal three-way split of a doc
 
 
 def _load_loadings() -> pd.DataFrame:
@@ -102,6 +108,10 @@ def assign() -> None:
     S = Vc.T @ W  # (K, 3): topic loadings weighted by per-doc WG citations
     mass = V.sum(axis=0)
     n_cited_docs = (Vc > 0).sum(axis=0)
+    # real evidence per topic per WG: distinct cited docs with positive
+    # loading on the topic (ipcc_cites_total below is loading-weighted and
+    # fractional — a magnitude, not a count)
+    n_docs_wg = (Vc > 0).T.astype(np.float32) @ (W > 0).astype(np.float32)  # (K, 3)
 
     row_sums = S.sum(axis=1)
     with np.errstate(invalid="ignore", divide="ignore"):
@@ -113,10 +123,13 @@ def assign() -> None:
             "top_words": pd.Series(_top_words()).reindex(range(K)).fillna(""),
             "docs_equiv": mass.round(0).astype(int),
             "n_cited_docs": n_cited_docs,
-            "ipcc_cites_total": row_sums.astype(int),
-            "score_wg1": S[:, 0].astype(int),
-            "score_wg2": S[:, 1].astype(int),
-            "score_wg3": S[:, 2].astype(int),
+            "n_docs_wg1": n_docs_wg[:, 0].round(0).astype(int),
+            "n_docs_wg2": n_docs_wg[:, 1].round(0).astype(int),
+            "n_docs_wg3": n_docs_wg[:, 2].round(0).astype(int),
+            "ipcc_cites_total": row_sums.round(0).astype(int),
+            "score_wg1": S[:, 0].round(0).astype(int),
+            "score_wg2": S[:, 1].round(0).astype(int),
+            "score_wg3": S[:, 2].round(0).astype(int),
             "wg1_share": shares[:, 0],
             "wg2_share": shares[:, 1],
             "wg3_share": shares[:, 2],
@@ -141,50 +154,35 @@ def assign() -> None:
     typer.echo(f"-> {TOPIC_WG}")
 
 
-def _dominant_and_membership(
-    H: pd.DataFrame, wg3_topics: np.ndarray, wg3_strict: np.ndarray
-) -> dict[str, np.ndarray]:
+def _score_and_dominant(H: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    """WG III content score per document, and its dominant topic's WG."""
     V = H.to_numpy()
-    # renormalize rows before thresholding: raw NMF rows do not sum to 1
-    # (the audit script does the same); argmax is scale-invariant per row
+    # renormalize rows first: raw NMF rows do not sum to 1 (the audit script
+    # does the same), so the score is a proper content fraction
     V = V / np.maximum(V.sum(axis=1, keepdims=True), 1e-9)
-    dom = V.argmax(axis=1)
-    prim = pd.read_csv(TOPIC_WG).set_index("topic")["primary_wg"].to_numpy()
-    dom_wg = prim[dom]
-    soft3 = (V[:, wg3_topics] >= ORPHAN).any(axis=1)
-    soft3s = (V[:, wg3_strict] >= ORPHAN).any(axis=1)
-    hard3s = np.isin(dom, wg3_strict)
-    return {
-        "dom_wg": dom_wg,
-        "hard3": dom_wg == 3,
-        "hard3_strict": hard3s,
-        "soft3": soft3,
-        "soft3_strict": soft3s,
-    }
+    topic_wg = pd.read_csv(TOPIC_WG).set_index("topic")
+    dom_wg = topic_wg["primary_wg"].to_numpy()[V.argmax(axis=1)]
+    share3 = topic_wg["wg3_share"].reindex(range(K)).to_numpy(dtype=np.float64)
+    return V @ share3, dom_wg
 
 
 @app.command()
 def counts() -> None:
     """Count documents in WG-labeled topics -> wgiii_doc_counts_a200.csv."""
     H = _load_loadings()
-    topic_wg = pd.read_csv(TOPIC_WG)
-    wg3 = topic_wg.loc[topic_wg["primary_wg"] == 3, "topic"].to_numpy()
-    wg3s = topic_wg.loc[
-        (topic_wg["primary_wg"] == 3) & (topic_wg["wg3_share"] > 0.5), "topic"
-    ].to_numpy()
-    m = _dominant_and_membership(H, wg3, wg3s)
+    score3, dom_wg = _score_and_dominant(H)
+    wg3_rel = score3 >= WG3_CUT
     n = len(H)
 
     typer.echo(f"corpus: {n:,} documents")
-    for key in ("hard3", "hard3_strict", "soft3", "soft3_strict"):
-        typer.echo(f"  {key:13s} {m[key].sum():>8,}  ({m[key].mean():.1%})")
-    dom_counts = pd.Series(m["dom_wg"]).value_counts().sort_index()
+    typer.echo(f"  wg3_relevant  {wg3_rel.sum():>8,}  ({wg3_rel.mean():.1%})")
+    dom_counts = pd.Series(dom_wg).value_counts().sort_index()
     typer.echo(f"dominant-topic docs per WG: {dom_counts.to_dict()}")
 
     # year split + policy cross-tab
     meta = _load_meta().reindex(H.index)
     years = meta["publication_year"].to_numpy(dtype="float64")
-    relevant = (meta["relevant"].to_numpy(dtype="float64") > 0.5).astype(bool)
+    policy = (meta["relevant"].to_numpy(dtype="float64") > 0.5).astype(bool)
     sector_cols = [c for c in meta.columns if c.startswith("8 - ")]
     sec = meta[sector_cols].to_numpy(dtype="float32")
     sec_argmax = pd.Series(
@@ -197,40 +195,39 @@ def counts() -> None:
     year_tab = pd.DataFrame(
         {
             "year": pd.Series(years, dtype="float64").astype("Int64"),
-            "hard3": m["hard3"],
-            "soft3": m["soft3"],
-            "relevant": relevant,
+            "wg3_relevant": wg3_rel,
+            "policy": policy,
+            "wg3_policy_relevant": wg3_rel & policy,
         }
     )
     yr = (
-        year_tab[year_tab["year"].between(1990, 2025)]
+        year_tab[year_tab["year"].between(1985, 2025)]
         .groupby("year")
         .agg(
-            docs=("hard3", "size"), wg3_hard=("hard3", "sum"), wg3_soft=("soft3", "sum")
+            docs=("wg3_relevant", "size"),
+            wg3_relevant=("wg3_relevant", "sum"),
+            wg3_policy_relevant=("wg3_policy_relevant", "sum"),
         )
     )
-    yr["wg3_hard_share"] = yr["wg3_hard"] / yr["docs"]
+    yr["wg3_relevant_share"] = yr["wg3_relevant"] / yr["docs"]
 
     typer.echo("\npolicy-relevance convergence (classifier of Callaghan et al. 2024):")
-    typer.echo(
-        f"  relevant share within hard3 set:    {relevant[m['hard3']].mean():.1%}"
-    )
-    typer.echo(f"  relevant share corpus-wide:     {relevant.mean():.1%}")
+    typer.echo(f"  policy share within wg3_relevant set: {policy[wg3_rel].mean():.1%}")
+    typer.echo(f"  policy share corpus-wide:           {policy.mean():.1%}")
     if len(sector_cols):
-        # argmax only over policy-relevant hard3 documents: the sector scores
+        # argmax only over policy-relevant wg3 documents: the sector scores
         # are only trustworthy where the classifier's cascade engaged (the
         # rule used in reporting/numbers.py)
         sec_names = sec_argmax[sec.argmax(axis=1)]
-        sel = m["hard3"] & relevant
-        typer.echo(f"\n  sector argmax over relevant∩hard3 documents ({sel.sum():,}):")
+        sel = wg3_rel & policy
+        typer.echo(
+            f"\n  sector argmax over policy∩wg3_relevant documents ({sel.sum():,}):"
+        )
         typer.echo(pd.Series(sec_names[sel]).value_counts().to_string())
 
     out = {
         "corpus_docs": [n],
-        "hard3": [int(m["hard3"].sum())],
-        "hard3_strict": [int(m["hard3_strict"].sum())],
-        "soft3": [int(m["soft3"].sum())],
-        "soft3_strict": [int(m["soft3_strict"].sum())],
+        "wg3_relevant": [int(wg3_rel.sum())],
     }
     pd.DataFrame(out).to_csv(COUNTS, index=False)
     yr.reset_index().to_csv(
