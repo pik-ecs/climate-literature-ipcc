@@ -25,6 +25,15 @@ count of "all papers of WG III interest"; don't compare `policy` to the
 **`wgiii_doc_counts_a200.csv`** — headline totals (`corpus_docs`,
 `wg3_relevant`) over the whole corpus, all years.
 
+**`wgiii_sector_by_year_a200.csv`** — one row per publication year (1987–2025),
+one column per WG III sector plus `unclassified` if ever present, counts of
+policy-relevant papers whose sector argmax is that sector; `policy_total` is
+the row sum and equals the `policy` column of `wgiii_docs_by_year_a200.csv`.
+Sector = argmax over the seven sector scores (cascade in
+`classify/predict.py`), so only policy-relevant papers appear. Divide a row
+by `policy_total` for shares; shares are the safer read across years, since
+raw counts track Scopus coverage growth.
+
 **`wgiii_coverage_a200.csv`** — exploratory (see `scripts/wg3_coverage.py`;
 not consumed by the pipeline): one row per (WG class, year) from a
 three-way shrunk classifier; `docs` classified into `class_wg`, `cited_own`

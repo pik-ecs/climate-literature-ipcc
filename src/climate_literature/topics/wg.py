@@ -244,6 +244,26 @@ def counts() -> None:
         )
         typer.echo(pd.Series(sec_names[sel]).value_counts().to_string())
 
+        # sector x year counts; shares are one divide away in a spreadsheet,
+        # and raw counts keep the audit trail explicit
+        sy = pd.DataFrame(
+            {
+                "year": years[sel].astype(int),
+                "sector": np.asarray(sec_names[sel], dtype=object),
+            }
+        )
+        sy["sector"] = sy["sector"].fillna("unclassified")
+        pivot = (
+            sy.groupby(["year", "sector"], observed=True)
+            .size()
+            .unstack("sector", fill_value=0)
+        )
+        pivot = pivot[pivot.sum().sort_values(ascending=False).index]
+        pivot["policy_total"] = pivot.sum(axis=1)
+        sec_out = COUNTS.with_name("wgiii_sector_by_year_a200.csv")
+        pivot.reset_index().to_csv(sec_out, index=False)
+        typer.echo(f"-> {sec_out} (sector x year counts)")
+
     out = {
         "corpus_docs": [n],
         "wg3_relevant": [int(wg3_rel.sum())],

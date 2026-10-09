@@ -4,12 +4,9 @@ The IPCC skeleton (Section 1, "literature has continued to grow since AR6")
 has a bracketed slot for numerical detail. This module recomputes those
 numbers from `data/predictions` — the same corpus, loaders and thresholds the
 figures use — and renders `templates/wgiii_lit_growth.md.j2` (edit the prose
-there) with a values/provenance appendix, so every quoted figure can be
-traced back to a filter.
+there).
 
-Quote only years up to LAST_COMPLETE_YEAR (defined in reporting.plots): the
-corpus carries in-press cover dates (records with coverDate 2026-2027 exist),
-so recent years in the raw year series are inflated and 2026+ is incomplete.
+Quote only years up to LAST_COMPLETE_YEAR (defined in reporting.plots).
 
 Run from the repo root:
 
@@ -39,7 +36,7 @@ app = typer.Typer(help="Compute the numbers quoted in the WGIII text.")
 REPORT_DIR = Path("report")
 OUT_FILE = REPORT_DIR / "wgiii_lit_growth.md"
 
-# AR6 baseline year (Callaghan et al. 2020 methods re-applied from here);
+# BASELINE_YEAR ~ comparison to Callaghan et al 2020
 # LAST_COMPLETE_YEAR (the cover-date cutoff) lives in reporting.plots.
 BASELINE_YEAR = 2019
 AR6_CUTOFF_FIRST_YEAR = 2022  # AR6 literature searches closed in 2021
