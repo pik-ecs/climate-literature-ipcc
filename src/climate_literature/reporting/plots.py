@@ -98,6 +98,10 @@ def save_fig(fig: plt.Figure, name: str) -> None:
 # Corpus figures cover the modern literature only; older records are dropped
 # at load time, so every figure shares the same denominator.
 MIN_PUBLICATION_YEAR = 1985
+# Last year whose cover-date counts the snapshot covers completely: the corpus
+# carries in-press records with cover dates of 2026+, so recent years in the
+# raw year series are inflated and 2026+ is incomplete (snapshot: Sep 2026).
+LAST_COMPLETE_YEAR = 2025
 
 
 def load_predictions(columns: list[str]) -> DataFrame:
@@ -152,7 +156,7 @@ def wgiii_share_by_year() -> None:
     """
     configure_style()
     df = read_csv(TABLES_DIR / "wgiii_docs_by_year_a200.csv", index_col="year")
-    df = df[df.index <= 2024]  # cover dates beyond 2024 are incomplete
+    df = df[df.index <= LAST_COMPLETE_YEAR]
     total, wg3, rel = df["docs"], df["wg3_relevant"], df["wg3_policy_relevant"]
 
     fig, ax = plt.subplots(figsize=(7, 3.5))
@@ -179,7 +183,7 @@ def wgiii_share_by_year() -> None:
     ax.set_title("WG III-relevant share of the literature")
     ax.set_xlabel("Publication year")
     ax.set_ylabel("Documents")
-    ax.set_xticks(range(1985, 2025, 5))
+    ax.set_xticks(range(MIN_PUBLICATION_YEAR, LAST_COMPLETE_YEAR + 1, 5))
     ax.grid(axis="y", color=GRID, linewidth=0.8)
     ax.set_axisbelow(True)
     for spine in ("top", "right"):
@@ -217,6 +221,7 @@ def papers_by_year() -> None:
     configure_style()
     df = load_predictions(["publication_year"])
     counts = _count_by_year(df["publication_year"])
+    counts = counts.loc[:LAST_COMPLETE_YEAR]  # in-press future cover dates beyond
 
     fig, ax = plt.subplots(figsize=(7, 3.5))
     ax.bar(counts.index, counts.to_numpy(), width=0.8, color=SERIES_1, linewidth=0)

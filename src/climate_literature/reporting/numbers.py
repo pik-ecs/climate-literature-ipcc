@@ -7,9 +7,9 @@ figures use — and renders `templates/wgiii_lit_growth.md.j2` (edit the prose
 there) with a values/provenance appendix, so every quoted figure can be
 traced back to a filter.
 
-Quote only years up to LAST_COMPLETE_YEAR: the corpus carries in-press cover
-dates (records with coverDate 2025-2027 exist), so recent years in the raw
-year series are inflated and 2025+ is incomplete.
+Quote only years up to LAST_COMPLETE_YEAR (defined in reporting.plots): the
+corpus carries in-press cover dates (records with coverDate 2026-2027 exist),
+so recent years in the raw year series are inflated and 2026+ is incomplete.
 
 Run from the repo root:
 
@@ -25,6 +25,7 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from climate_literature.constants import PREDICTIONS_DATA, TABLES_DIR
 from climate_literature.reporting.plots import (
+    LAST_COMPLETE_YEAR,
     MIN_PUBLICATION_YEAR,
     RELEVANCE_THRESHOLD,
     SECTOR_PREFIX,
@@ -37,11 +38,10 @@ app = typer.Typer(help="Compute the numbers quoted in the WGIII text.")
 REPORT_DIR = Path("report")
 OUT_FILE = REPORT_DIR / "wgiii_lit_growth.md"
 
-# AR6 baseline year (Callaghan et al. 2020 methods re-applied from here) and
-# the last year whose cover-date counts are not cut off by the retrieval.
+# AR6 baseline year (Callaghan et al. 2020 methods re-applied from here);
+# LAST_COMPLETE_YEAR (the cover-date cutoff) lives in reporting.plots.
 BASELINE_YEAR = 2019
 AR6_CUTOFF_FIRST_YEAR = 2022  # AR6 literature searches closed in 2021
-LAST_COMPLETE_YEAR = 2024
 
 
 def _fmt(n: float) -> str:
@@ -85,7 +85,7 @@ def compute_stats() -> dict[str, float]:
     stats: dict[str, float] = {
         "n_corpus": n_corpus,
         "papers_2019": int(base),
-        "papers_2024": int(end),
+        "papers_last": int(end),
         "ratio_recent": end / base,
         "cagr_recent": (end / base) ** (1 / span) - 1,
         "papers_post_ar6": post_ar6,
@@ -93,7 +93,7 @@ def compute_stats() -> dict[str, float]:
         "n_relevant": int(len(rel)),
         "share_relevant": len(rel) / n_corpus,
         "relevant_2019": int(rel_base),
-        "relevant_2024": int(rel_end),
+        "relevant_last": int(rel_end),
         "cagr_relevant": (rel_end / rel_base) ** (1 / span) - 1,
         "n_sector": n_sector,
     }
