@@ -148,11 +148,11 @@ def wgiii_share_by_year() -> None:
 
     Stacked bars: the full bar is that year's corpus (total = the papers-by-
     year figure's count); from the base up, documents that are WG III-relevant
-    (WG III content score ≥ 1/3, the loading-weighted average of per-topic
-    WG III citation shares — climate_literature.topics.wg), of which the
-    policy-relevant subset per the 2024 classifier. Reads the yearly table
-    written by `topics.wg counts` — rerun that command first if topic labels
-    changed.
+    (content score ≥ 1/3 OR mitigation-policy-relevant —
+    climate_literature.topics.wg), of which the policy-relevant subset per the
+    2024 classifier (a subset by construction of the union rule). Reads the
+    yearly table written by `topics.wg counts` — rerun that command first if
+    topic labels or the rule changed.
     """
     configure_style()
     df = read_csv(TABLES_DIR / "wgiii_docs_by_year_a200.csv", index_col="year")
@@ -242,7 +242,9 @@ def policy_share_by_sector() -> None:
     """Share of the corpus on climate policy, and those papers by sector."""
     configure_style()
     sectors = sector_columns()
-    df = load_prediction_columns(["relevant", *sectors])
+    # same year filters as the text, so figure and prose totals agree
+    df = load_prediction_columns(["publication_year", "relevant", *sectors])
+    df = df[df["publication_year"] <= LAST_COMPLETE_YEAR]  # in-press years beyond
 
     n_total = len(df)
     n_policy = int((df["relevant"] > RELEVANCE_THRESHOLD).sum())
