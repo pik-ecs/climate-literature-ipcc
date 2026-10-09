@@ -19,30 +19,3 @@ These figures reflect publications indexed in Scopus, which over-represents Engl
 WG III-relevance is calculated by cross-refererencing a 200-topic topic model (following the methods described in Callaghan et al 2020), with AR6's reference lists.
 Each topic is assigned WG III citation share - the fraction of that topic's IPCC citations contributed by WG III chapters - and each paper's WG III content fraction is the average of these shares across its topics, weighted by how strongly each topic features in the paper.
 Papers scoring above one third - more WG III content than an equal split across the three Working Groups - are counted as WG III-relevant.
-
-## Values and provenance
-
-| Value | Computed |
-| --- | --- |
-| corpus size (unique records, {{ min_year }}–{{ last_year }}) | {{ n_corpus | comma }} |
-| papers {{ baseline_year }} | {{ papers_2019 | comma }} |
-| papers {{ last_year }} | {{ papers_last | comma }} |
-| growth factor {{ baseline_year }}→{{ last_year }} | {{ ratio_recent | times }} |
-| compound growth | {{ cagr_recent | pct }}/yr |
-| papers {{ ar6_first }}–{{ last_year }} | {{ papers_post_ar6 | comma }} |
-| share of corpus {{ ar6_first }}–{{ last_year }} | {{ share_post_ar6 | pct }} |
-| policy-relevant papers (total) | {{ n_relevant | comma }} |
-| policy-relevant share | {{ share_relevant | pct }} |
-| relevant CAGR {{ baseline_year }} → {{ last_year }} | {{ relevant_2019 | approx }} → {{ relevant_last | approx }} (≈{{ cagr_relevant | pct }}/yr) |
-| sector split n ({{ ar6_first }}–{{ last_year }}) | {{ n_sector | comma }} |
-| sector split shares | {{ sector_str }} |
-| WG III-relevant papers | {{ n_wg3 | comma }} ({{ share_wg3 | pct }} of {{ min_year }}–{{ last_year }}) |
-| WG III-relevant share {{ baseline_year }} → {{ last_year }} | {{ share_wg3_baseline | pct }} → {{ share_wg3_last | pct }} |
-
-Filters: unique `item_id`; publication year {{ min_year }}–{{ last_year }}
-(cover year, from `data/predictions`); policy-relevant = `relevant` >
-{{ threshold }}; sector = argmax over the `"{{ sector_prefix }}…"` sector
-score columns; WG III-relevant = topic content score ≥ 1/3, per-year counts
-from `report/tables/wgiii_docs_by_year_a200.csv` (written by `python -m
-climate_literature.topics.wg counts`; rule and validation in
-`scripts/wg3_tune.py`). Shares use the year-dated subset of the corpus.
