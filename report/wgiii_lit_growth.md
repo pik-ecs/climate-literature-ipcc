@@ -7,7 +7,7 @@ Annual publications rose from ~64,000 in 2019 to ~180,000 in 2025, (at an annual
 
 ![papers by year](../figures/papers_by_year.svg)
 
-420,954 papers (32% of the literature) address Working Group III subject matter as measured from the IPCC's own citations (see below); this share has grown from 30% in 2019 to 37% in 2025.
+438,272 papers (33% of the literature) address Working Group III subject matter, as measured from the IPCC's own citations and the mitigation-policy classifier (see below); this share has grown from 31% in 2019 to 38% in 2025.
 Within this corpus, a subset of (106,087 papers (8% of the corpus) were classified as climate policy relevant according to the classifier in Callaghan et al. 2024. 
 Climate policy relevant papers grew from ~4,800 in 2019 to ~14,000 (2025) (growing at ≈20% per year).
 The climate policy relevant papers published between 2022 and 2025 (n = 47,834) were split across sectors as follows energy 30%; cross-sectoral 29%; transport 13%; AFOLU 10%; buildings 8%; industry 7%; waste 2%.
@@ -18,4 +18,4 @@ These figures reflect publications indexed in Scopus, which over-represents Engl
 
 WG III-relevance is calculated by cross-refererencing a 200-topic topic model (following the methods described in Callaghan et al 2020), with AR6's reference lists.
 Each topic is assigned WG III citation share - the fraction of that topic's IPCC citations contributed by WG III chapters - and each paper's WG III content fraction is the average of these shares across its topics, weighted by how strongly each topic features in the paper.
-Papers scoring above one third - more WG III content than an equal split across the three Working Groups - are counted as WG III-relevant.
+Papers are counted as WG III-relevant when either their WG III citation share is above one third - more WG III content than an equal split across the three Working Groups - or when they are classified as climate mitigation policy relevant by Callaghan et al. 2024.

@@ -14,16 +14,24 @@ beyond bare argmax.
 
 `assign` writes report/tables/topic_wg_a200.csv; `counts` writes
 report/tables/wgiii_doc_counts_a200.csv with the headline document counts.
-The one measure of WG III-ness is a content score —
+WG III membership is granted by either of two complementary instruments: a
+content score from the IPCC's own citations,
 
     score(doc) = Σ_t renormalised loading(doc, t) · wg3_share(t)
 
-the document's WG III content fraction — and `wg3_relevant` is score ≥ 1/3:
-more WG III content than an equal three-way split, an absolute anchor that
-does not depend on this corpus's own citation mix. Against AR6-cited ground
-truth (scripts/wg3_tune.py) this cut recovers 62% of WG III-cited documents
-while flagging only 1.2% of WG I-cited literature. `wg3_policy_relevant` is
-wg3_relevant ∩ the 2024 classifier.
+cut at 1/3 (more WG III content than an equal three-way split — an absolute
+anchor independent of this corpus's citation mix; against AR6-cited ground
+truth this cut recovers 62% of WG III-cited documents while flagging only
+1.2% of WG I-cited literature, scripts/wg3_tune.py), OR the mitigation-policy
+classifier of Callaghan et al. 2024. The union matters because the score
+sees subject vocabulary as the IPCC cites it, and application-focused
+mitigation papers (REDD+, GHG accounting, carbon markets) sit in forest/land
+topics WG II also cites: the cut alone misses 16% of classifier positives
+(scripts/wg3_policy_misses.py), and no convex reweighting of the score
+recovers them without doubling WG I contamination (scripts/wg3_gamma.py).
+The union lifts AR6 recall to 68% at a 2.7% WG I flag rate. It also makes
+policy ⊆ wg3_relevant hold by construction: `wg3_policy_relevant` is then
+exactly the per-year `policy` count.
 
 counts also splits by publication year and cross-tabs against the
 policy-relevance classifier and its sector argmax (reporting/numbers.py
@@ -171,18 +179,26 @@ def counts() -> None:
     """Count documents in WG-labeled topics -> wgiii_doc_counts_a200.csv."""
     H = _load_loadings()
     score3, dom_wg = _score_and_dominant(H)
-    wg3_rel = score3 >= WG3_CUT
-    n = len(H)
-
-    typer.echo(f"corpus: {n:,} documents")
-    typer.echo(f"  wg3_relevant  {wg3_rel.sum():>8,}  ({wg3_rel.mean():.1%})")
-    dom_counts = pd.Series(dom_wg).value_counts().sort_index()
-    typer.echo(f"dominant-topic docs per WG: {dom_counts.to_dict()}")
+    score_cut = score3 >= WG3_CUT
 
     # year split + policy cross-tab
     meta = _load_meta().reindex(H.index)
     years = meta["publication_year"].to_numpy(dtype="float64")
     policy = (meta["relevant"].to_numpy(dtype="float64") > 0.5).astype(bool)
+
+    # membership by either instrument: the citation-share score sees content
+    # through the IPCC's own citing lens; the mitigation-policy classifier
+    # catches application-focused papers whose vocabulary WG II also cites
+    # (scripts/wg3_policy_misses.py; convex score variants win nothing:
+    # scripts/wg3_gamma.py)
+    wg3_rel = score_cut | policy
+    n = len(H)
+
+    typer.echo(f"corpus: {n:,} documents")
+    typer.echo(f"  score-cut     {score_cut.sum():>8,}  ({score_cut.mean():.1%})")
+    typer.echo(f"  wg3_relevant  {wg3_rel.sum():>8,}  ({wg3_rel.mean():.1%})")
+    dom_counts = pd.Series(dom_wg).value_counts().sort_index()
+    typer.echo(f"dominant-topic docs per WG: {dom_counts.to_dict()}")
     sector_cols = [c for c in meta.columns if c.startswith("8 - ")]
     sec = meta[sector_cols].to_numpy(dtype="float32")
     sec_argmax = pd.Series(
@@ -197,7 +213,7 @@ def counts() -> None:
             "year": pd.Series(years, dtype="float64").astype("Int64"),
             "wg3_relevant": wg3_rel,
             "policy": policy,
-            "wg3_policy_relevant": wg3_rel & policy,
+            "wg3_policy_relevant": wg3_rel & policy,  # = policy, by construction
         }
     )
     yr = (
@@ -206,6 +222,7 @@ def counts() -> None:
         .agg(
             docs=("wg3_relevant", "size"),
             wg3_relevant=("wg3_relevant", "sum"),
+            policy=("policy", "sum"),
             wg3_policy_relevant=("wg3_policy_relevant", "sum"),
         )
     )
@@ -215,11 +232,13 @@ def counts() -> None:
     typer.echo(f"  policy share within wg3_relevant set: {policy[wg3_rel].mean():.1%}")
     typer.echo(f"  policy share corpus-wide:           {policy.mean():.1%}")
     if len(sector_cols):
-        # argmax only over policy-relevant wg3 documents: the sector scores
-        # are only trustworthy where the classifier's cascade engaged (the
-        # rule used in reporting/numbers.py)
+        # argmax only over policy-relevant wg3 documents in the year window
+        # the tables use: the sector scores are only trustworthy where the
+        # classifier's cascade engaged (the rule used in reporting/numbers.py),
+        # and undated/in-press years would inflate the echo past the figure
         sec_names = sec_argmax[sec.argmax(axis=1)]
-        sel = wg3_rel & policy
+        in_window = pd.Series(years).between(1985, 2025).fillna(False).to_numpy()
+        sel = wg3_rel & policy & in_window
         typer.echo(
             f"\n  sector argmax over policy∩wg3_relevant documents ({sel.sum():,}):"
         )

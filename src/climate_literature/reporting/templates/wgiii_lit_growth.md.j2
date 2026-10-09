@@ -7,7 +7,7 @@ Annual publications rose from {{ papers_2019 | approx }} in {{ baseline_year }} 
 
 ![papers by year]({{ fig_dir }}/papers_by_year.svg)
 
-{{ n_wg3 | comma }} papers ({{ share_wg3 | pct }} of the literature) address Working Group III subject matter as measured from the IPCC's own citations (see below); this share has grown from {{ share_wg3_baseline | pct }} in {{ baseline_year }} to {{ share_wg3_last | pct }} in {{ last_year }}.
+{{ n_wg3 | comma }} papers ({{ share_wg3 | pct }} of the literature) address Working Group III subject matter, as measured from the IPCC's own citations and the mitigation-policy classifier (see below); this share has grown from {{ share_wg3_baseline | pct }} in {{ baseline_year }} to {{ share_wg3_last | pct }} in {{ last_year }}.
 Within this corpus, a subset of ({{ n_relevant | comma }} papers ({{ share_relevant | pct }} of the corpus) were classified as climate policy relevant according to the classifier in Callaghan et al. 2024. 
 Climate policy relevant papers grew from {{ relevant_2019 | approx }} in {{ baseline_year }} to {{ relevant_last | approx }} ({{ last_year }}) (growing at ≈{{ cagr_relevant | pct }} per year).
 The climate policy relevant papers published between {{ ar6_first }} and {{ last_year }} (n = {{ n_sector | comma }}) were split across sectors as follows {{ sector_str }}.
@@ -18,4 +18,4 @@ These figures reflect publications indexed in Scopus, which over-represents Engl
 
 WG III-relevance is calculated by cross-refererencing a 200-topic topic model (following the methods described in Callaghan et al 2020), with AR6's reference lists.
 Each topic is assigned WG III citation share - the fraction of that topic's IPCC citations contributed by WG III chapters - and each paper's WG III content fraction is the average of these shares across its topics, weighted by how strongly each topic features in the paper.
-Papers scoring above one third - more WG III content than an equal split across the three Working Groups - are counted as WG III-relevant.
+Papers are counted as WG III-relevant when either their WG III citation share is above one third - more WG III content than an equal split across the three Working Groups - or when they are classified as climate mitigation policy relevant by Callaghan et al. 2024.
