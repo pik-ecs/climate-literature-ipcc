@@ -17,13 +17,14 @@ Run from the repo root:
 """
 
 import math
+import os.path
 from pathlib import Path
 
 import pandas as pd
 import typer
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from climate_literature.constants import PREDICTIONS_DATA, TABLES_DIR
+from climate_literature.constants import FIGURES_DIR, PREDICTIONS_DATA, TABLES_DIR
 from climate_literature.reporting.plots import (
     LAST_COMPLETE_YEAR,
     MIN_PUBLICATION_YEAR,
@@ -162,6 +163,8 @@ def render(stats: dict[str, float]) -> str:
             **stats,
             sector_str=_sector_str(stats),
             predictions_dir=str(PREDICTIONS_DATA),
+            # figure links are relative to the rendered file in report/
+            fig_dir=os.path.relpath(FIGURES_DIR, REPORT_DIR),
             min_year=MIN_PUBLICATION_YEAR,
             last_year=LAST_COMPLETE_YEAR,
             baseline_year=BASELINE_YEAR,

@@ -4,28 +4,21 @@ The literature on climate change has continued to grow since AR6.
 The bibliometric methods of Callaghan et al. (2020) were re-applied to an updated corpus of {{ n_corpus | approx(3) }} climate-relevant Scopus records ({{ min_year }}–{{ last_year }}).
 Annual publications rose from {{ papers_2019 | approx }} in {{ baseline_year }} to {{ papers_last | approx }} in {{ last_year }}, (at an annual growth rate of {{ cagr_recent | pct }}).
 {{ papers_post_ar6 | comma }} papers ({{ share_post_ar6 | pct }} of the corpus) appeared in {{ ar6_first }}–{{ last_year }}, after the AR6 literature cut-off (Figure X).
+
+![papers by year]({{ fig_dir }}/papers_by_year.svg)
+
 {{ n_wg3 | comma }} papers ({{ share_wg3 | pct }} of the literature) address Working Group III subject matter as measured from the IPCC's own citations (see below); this share has grown from {{ share_wg3_baseline | pct }} in {{ baseline_year }} to {{ share_wg3_last | pct }} in {{ last_year }}.
 Within this corpus, a subset of ({{ n_relevant | comma }} papers ({{ share_relevant | pct }} of the corpus) were classified as climate policy relevant according to the classifier in Callaghan et al. 2024. 
 Climate policy relevant papers grew from {{ relevant_2019 | approx }} in {{ baseline_year }} to {{ relevant_last | approx }} ({{ last_year }}) (growing at ≈{{ cagr_relevant | pct }} per year).
 The climate policy relevant papers published between {{ ar6_first }} and {{ last_year }} (n = {{ n_sector | comma }}) were split across sectors as follows {{ sector_str }}.
+
+![policy share by sector]({{ fig_dir }}/policy_share_by_sector.svg)
 
 These figures reflect publications indexed in Scopus, which over-represents English-language journals and high-income-country institutions; they illustrate relative growth in publications rather than total global scientific knowledge.
 
 WG III-relevance is calculated by cross-refererencing a 200-topic topic model (following the methods described in Callaghan et al 2020), with AR6's reference lists.
 Each topic is assigned WG III citation share - the fraction of that topic's IPCC citations contributed by WG III chapters - and each paper's WG III content fraction is the average of these shares across its topics, weighted by how strongly each topic features in the paper.
 Papers scoring above one third - more WG III content than an equal split across the three Working Groups - are counted as WG III-relevant.
-
-## Not fillable from this project (left flagged)
-
-- Non-English share of the literature: Scopus abstract records carry no
-  language field, so no number can be produced; keep the qualitative
-  coverage caveat above.
-- Regional-evidence progress (paragraph 3): no assessment-process data here.
-  The predictions do contain author-affiliation countries, so an
-  affiliation-country mix over time is the natural proxy if wanted later.
-- `Ford et al. 2025`, the `[link]` to contribution databases, and the
-  Chapter-3 database calls: outside this repo.
-
 
 ## Values and provenance
 
