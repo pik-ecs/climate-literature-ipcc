@@ -103,9 +103,13 @@ def compute_stats() -> dict[str, float]:
     # WG III relevance: topic content score, from the yearly table written by
     # `python -m climate_literature.topics.wg counts` (re-run that command
     # after changing the model or the cut in topics.wg).
-    yrs = pd.read_csv(TABLES_DIR / "wgiii_docs_by_year_a200.csv", index_col="year")
-    yrs = yrs.loc[:LAST_COMPLETE_YEAR]
-    n_wg3, n_dated = int(yrs["wg3_relevant"].sum()), int(yrs["docs"].sum())
+    # the sheet holds every publication year; the report window is applied
+    # here and in reporting.plots
+    yrs = pd.read_csv(TABLES_DIR / "wgiii_docs_by_year_a200.csv")
+    yrs = yrs[yrs["year"].between(MIN_PUBLICATION_YEAR, LAST_COMPLETE_YEAR)].set_index(
+        "year"
+    )
+    n_wg3, n_dated = int(yrs["policy_or_wg3"].sum()), int(yrs["docs"].sum())
     stats |= {
         "n_wg3": n_wg3,
         "share_wg3": n_wg3 / n_dated,
@@ -117,7 +121,7 @@ def compute_stats() -> dict[str, float]:
 
 def _year_share(yrs: pd.DataFrame, year: int) -> float:
     r = yrs.loc[year]
-    return r["wg3_relevant"] / r["docs"]
+    return r["policy_or_wg3"] / r["docs"]
 
 
 def _sector_str(stats: dict[str, float]) -> str:

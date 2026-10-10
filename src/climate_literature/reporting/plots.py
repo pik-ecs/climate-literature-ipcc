@@ -156,8 +156,9 @@ def wgiii_share_by_year() -> None:
     """
     configure_style()
     df = read_csv(TABLES_DIR / "wgiii_docs_by_year_a200.csv", index_col="year")
-    df = df[df.index <= LAST_COMPLETE_YEAR]
-    total, wg3, rel = df["docs"], df["wg3_relevant"], df["wg3_policy_relevant"]
+    # the sheet holds all years; figures keep the report window
+    df = df[(df.index >= MIN_PUBLICATION_YEAR) & (df.index <= LAST_COMPLETE_YEAR)]
+    total, wg3, rel = df["docs"], df["policy_or_wg3"], df["policy"]
 
     fig, ax = plt.subplots(figsize=(7, 3.5))
     x = df.index.to_numpy()

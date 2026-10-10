@@ -7,28 +7,36 @@ the model was selected). Corpus = one row per unique `item_id` in
 
 ## WG III document counts
 
-**`wgiii_docs_by_year_a200.csv`** — one row per publication year (1985–2025).
+**`wgiii_docs_by_year_a200.csv`** — one row per publication year. All years are
+included, plus a blank-year row for records with no publication year; the rows
+sum to `corpus_docs`. The report numbers use the window 1985–2025, applied in
+`reporting/`. WG III-relevance has two instruments; each combination has its
+own column (rule and validation: `climate_literature.topics.wg`).
 
 | column | meaning |
 | --- | --- |
 | `docs` | corpus records with that cover year |
-| `wg3_relevant` | WG III-relevant: topic content score ≥ 1/3 **or** policy-relevant (`climate_literature.topics.wg`) |
+| `wg3_score_cut` | content score ≥ 1/3: loading-weighted average of per-topic WG III citation shares from AR6 reference lists |
 | `policy` | classified climate-policy-relevant by the Callaghan et al. 2024 (mitigation) classifier, `relevant` > 0.5 |
-| `wg3_policy_relevant` | WG III-relevant ∩ policy-relevant — since the union rule this is by construction **equal to `policy`**, kept for continuity with older shares of this file |
-| `wg3_relevant_share` | `wg3_relevant / docs` |
+| `policy_or_wg3` | either instrument flags the paper — the definition quoted in the report text |
+| `policy_and_wg3` | both instruments flag the paper — the strict overlap |
+| `policy_or_wg3_share` | `policy_or_wg3 / docs` |
 
-⚠️ `policy` and `wg3_policy_relevant` are counts of *mitigation-policy*
-papers — a strict subset of `wg3_relevant`. They are **not** the marginal
-count of "all papers of WG III interest"; don't compare `policy` to the
-`wg3_relevant` prose totals.
+The instruments measure different things and disagree in both directions:
+`wg3_score_cut` sees subject vocabulary as the IPCC cites it (and misses
+application-focused mitigation papers whose vocabulary WG II also cites),
+while `policy` is task-specific and has its own false positives. The report
+text uses `policy_or_wg3`; prose totals should not be compared against
+`policy` or `policy_and_wg3` columns.
 
-**`wgiii_doc_counts_a200.csv`** — headline totals (`corpus_docs`,
-`wg3_relevant`) over the whole corpus, all years.
+**`wgiii_doc_counts_a200.csv`** — the same columns as corpus totals, all
+years, plus `corpus_docs`.
 
-**`wgiii_sector_by_year_a200.csv`** — one row per publication year (1987–2025),
-one column per WG III sector plus `unclassified` if ever present, counts of
-policy-relevant papers whose sector argmax is that sector; `policy_total` is
-the row sum and equals the `policy` column of `wgiii_docs_by_year_a200.csv`.
+**`wgiii_sector_by_year_a200.csv`** — one row per publication year (all years;
+blank year = no publication year), one column per WG III sector plus
+`unclassified` if ever present, counts of policy-relevant papers whose sector
+argmax is that sector; `policy_total` is the row sum and equals the `policy`
+column of `wgiii_docs_by_year_a200.csv`.
 Sector = argmax over the seven sector scores (cascade in
 `classify/predict.py`), so only policy-relevant papers appear. Divide a row
 by `policy_total` for shares; shares are the safer read across years, since

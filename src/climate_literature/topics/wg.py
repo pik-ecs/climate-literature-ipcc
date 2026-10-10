@@ -15,7 +15,7 @@ beyond bare argmax.
 `assign` writes report/tables/topic_wg_a200.csv; `counts` writes
 report/tables/wgiii_doc_counts_a200.csv with the headline document counts.
 WG III membership is granted by either of two complementary instruments: a
-content score from the IPCC's own citations,
+content score from IPCC citations,
 
     score(doc) = Σ_t renormalised loading(doc, t) · wg3_share(t)
 
@@ -29,9 +29,10 @@ mitigation papers (REDD+, GHG accounting, carbon markets) sit in forest/land
 topics WG II also cites: the cut alone misses 16% of classifier positives
 (scripts/wg3_policy_misses.py), and no convex reweighting of the score
 recovers them without doubling WG I contamination (scripts/wg3_gamma.py).
-The union lifts AR6 recall to 68% at a 2.7% WG I flag rate. It also makes
-policy ⊆ wg3_relevant hold by construction: `wg3_policy_relevant` is then
-exactly the per-year `policy` count.
+The union lifts AR6 recall to 68% at a 2.7% WG I flag rate. The yearly sheet
+includes one column per definition (`wg3_score_cut`, `policy`,
+`policy_or_wg3`, `policy_and_wg3`) so sheet users can pick an instrument;
+`policy_or_wg3` is the report headline.
 
 counts also splits by publication year and cross-tabs against the
 policy-relevance classifier and its sector argmax (reporting/numbers.py
@@ -208,53 +209,58 @@ def counts() -> None:
         ]
     )
 
+    # one column per definition, so sheet users pick an instrument:
+    # wg3_score_cut is content score >= 1/3, policy is the classifier,
+    # plus their union (the report headline) and intersection
     year_tab = pd.DataFrame(
         {
             "year": pd.Series(years, dtype="float64").astype("Int64"),
-            "wg3_relevant": wg3_rel,
+            "wg3_score_cut": score_cut,
             "policy": policy,
-            "wg3_policy_relevant": wg3_rel & policy,  # = policy, by construction
+            "policy_or_wg3": wg3_rel,
+            "policy_and_wg3": score_cut & policy,
         }
     )
-    yr = (
-        year_tab[year_tab["year"].between(1985, 2025)]
-        .groupby("year")
-        .agg(
-            docs=("wg3_relevant", "size"),
-            wg3_relevant=("wg3_relevant", "sum"),
-            policy=("policy", "sum"),
-            wg3_policy_relevant=("wg3_policy_relevant", "sum"),
-        )
+    # one row per publication year, all years, plus a blank-year row for
+    # records with no publication year; rows sum to corpus_docs, and the
+    # readers in reporting/ apply the 1985..LAST_COMPLETE_YEAR report window
+    yr = year_tab.groupby("year", dropna=False).agg(
+        docs=("policy_or_wg3", "size"),
+        wg3_score_cut=("wg3_score_cut", "sum"),
+        policy=("policy", "sum"),
+        policy_or_wg3=("policy_or_wg3", "sum"),
+        policy_and_wg3=("policy_and_wg3", "sum"),
     )
-    yr["wg3_relevant_share"] = yr["wg3_relevant"] / yr["docs"]
+    yr["policy_or_wg3_share"] = yr["policy_or_wg3"] / yr["docs"]
 
     typer.echo("\npolicy-relevance convergence (classifier of Callaghan et al. 2024):")
     typer.echo(f"  policy share within wg3_relevant set: {policy[wg3_rel].mean():.1%}")
     typer.echo(f"  policy share corpus-wide:           {policy.mean():.1%}")
     if len(sector_cols):
-        # argmax only over policy-relevant wg3 documents in the year window
-        # the tables use: the sector scores are only trustworthy where the
-        # classifier's cascade engaged (the rule used in reporting/numbers.py),
-        # and undated/in-press years would inflate the echo past the figure
+        # argmax over policy-relevant documents: the sector scores are only
+        # trustworthy where the classifier's cascade engaged (the rule used
+        # in reporting/numbers.py)
         sec_names = sec_argmax[sec.argmax(axis=1)]
-        in_window = pd.Series(years).between(1985, 2025).fillna(False).to_numpy()
-        sel = wg3_rel & policy & in_window
+        sel_all = wg3_rel & policy
+        # the echo mirrors the report window (matches the figure); the sheet
+        # includes every publication year, like the yearly table
+        sel_win = sel_all & pd.Series(years).between(1985, 2025).fillna(False)
         typer.echo(
-            f"\n  sector argmax over policy∩wg3_relevant documents ({sel.sum():,}):"
+            f"\n  sector argmax over policy documents, 1985-2025 ({sel_win.sum():,}):"
         )
-        typer.echo(pd.Series(sec_names[sel]).value_counts().to_string())
+        typer.echo(pd.Series(sec_names[sel_win]).value_counts().to_string())
 
         # sector x year counts; shares are one divide away in a spreadsheet,
         # and raw counts keep the audit trail explicit
         sy = pd.DataFrame(
             {
-                "year": years[sel].astype(int),
-                "sector": np.asarray(sec_names[sel], dtype=object),
+                "year": pd.array(years[sel_all], dtype="Int64"),  # <NA> = none
+                "sector": np.asarray(sec_names[sel_all], dtype=object),
             }
         )
         sy["sector"] = sy["sector"].fillna("unclassified")
         pivot = (
-            sy.groupby(["year", "sector"], observed=True)
+            sy.groupby(["year", "sector"], observed=True, dropna=False)
             .size()
             .unstack("sector", fill_value=0)
         )
@@ -266,7 +272,10 @@ def counts() -> None:
 
     out = {
         "corpus_docs": [n],
-        "wg3_relevant": [int(wg3_rel.sum())],
+        "wg3_score_cut": [int(score_cut.sum())],
+        "policy": [int(policy.sum())],
+        "policy_or_wg3": [int(wg3_rel.sum())],
+        "policy_and_wg3": [int((score_cut & policy).sum())],
     }
     pd.DataFrame(out).to_csv(COUNTS, index=False)
     yr.reset_index().to_csv(
